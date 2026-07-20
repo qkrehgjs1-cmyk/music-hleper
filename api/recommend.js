@@ -55,19 +55,21 @@ const SONG_LIBRARY = [
 ];
 
 const MOOD_KEYWORDS = {
-  sad: ['슬픔', '슬퍼', '우울', '우울해', '울적', '눈물', '비통', '상실', '상실감', '아파', '아프', '지침', '무기력', '무너져', '흐려'],
-  lonely: ['외로워', '혼자', '고독', '소외', '버려진', '쓸쓸', '고립', '공허', '공허해', '허전', '허전해'],
-  anxious: ['불안', '초조', '걱정', '두려워', '긴장', '불안해', '불안정', '미래가', '불안정해'],
-  angry: ['화나', '분노', '분통', '짜증', '열받', '억울', '미운', '너무 화', '한이', '화가'],
-  exhausted: ['지쳐', '피곤', '번아웃', '탈진', '힘들', '너무 바빠', '정신없', '버티기', '져'],
-  hopeful: ['희망', '회복', '다시', '좋아질', '괜찮아질', '치유', '위로', '다시 시작', '새로움', '기운'],
-  calm: ['차분', '평온', '편안', '안정', '잔잔', '조용', '안정감', '쉼', '마음이 편해'],
-  confident: ['자신감', '용기', '자립', '강해', '결심', '해낼', '할 수', '좋아질 수', '해야지'],
-  romantic: ['사랑', '설렘', '연애', '좋아해', '좋아', '애틋', '달콤', '로맨스', '그리움'],
-  playful: ['신나', '재미', '즐거워', '기분전환', '흥분', '들뜨', '파티', '신나고', '기분 업'],
-  nostalgic: ['추억', '옛날', '그때', '향수', '후회', '아련', '그리워', '다시 보고', '예전'],
-  selfLove: ['자존감', '내가', '스스로', '나를', '자기', 'self', '내 마음', '사랑해'],
-  rebellious: ['반항', '저항', '불만', '거부', '안 맞아', '싫어', '내 뜻대로', '자유로워']
+  sad: ['슬픔', '슬퍼', '우울', '우울해', '울적', '눈물', '비통', '상실', '상실감', '아파', '아프', '지침', '무기력', '무너져', '흐려', '비참', '서럽', '허무'],
+  lonely: ['외로워', '혼자', '고독', '소외', '버려진', '쓸쓸', '고립', '공허', '공허해', '허전', '허전해', '외롭', '덜어', '남겨진'],
+  anxious: ['불안', '초조', '걱정', '두려워', '긴장', '불안해', '불안정', '미래가', '불안정해', '떨려', '조마조마', '불안정', '초조해'],
+  angry: ['화나', '분노', '분통', '짜증', '열받', '억울', '미운', '너무 화', '한이', '화가', '분노해', '답답', '짓궂', '화난'],
+  exhausted: ['지쳐', '피곤', '번아웃', '탈진', '힘들', '너무 바빠', '정신없', '버티기', '져', '너무 지침', '녹초', '지친'],
+  hopeful: ['희망', '회복', '다시', '좋아질', '괜찮아질', '치유', '위로', '다시 시작', '새로움', '기운', '회복할', '좋아질'],
+  calm: ['차분', '평온', '편안', '안정', '잔잔', '조용', '안정감', '쉼', '마음이 편해', '순해', '안정적'],
+  confident: ['자신감', '용기', '자립', '강해', '결심', '해낼', '할 수', '좋아질 수', '해야지', '버텨', '끈기', '잡아'],
+  romantic: ['사랑', '설렘', '연애', '좋아해', '좋아', '애틋', '달콤', '로맨스', '그리움', '좋아하는', '사랑해', '연애중'],
+  playful: ['신나', '재미', '즐거워', '기분전환', '흥분', '들뜨', '파티', '신나고', '기분 업', '밝아', '개운', '유쾌'],
+  nostalgic: ['추억', '옛날', '그때', '향수', '후회', '아련', '그리워', '다시 보고', '예전', '옛날 생각', '다시 보고 싶어'],
+  selfLove: ['자존감', '내가', '스스로', '나를', '자기', 'self', '내 마음', '사랑해', '내가 중요해', '나를 위한'],
+  rebellious: ['반항', '저항', '불만', '거부', '안 맞아', '싫어', '내 뜻대로', '자유로워', '지겨워', '불만', '반발'],
+  dreamy: ['몽환', '꿈같', '아득', '부드럽', '환상', '환상적', '떠오르', '몽롱', '감성'],
+  intense: ['심장', '강렬', '진심', '격해', '불타', '뜨거운', '감정이 폭발', '무겁', '묵직']
 };
 
 function normalizeMoodText(text) {
@@ -85,22 +87,22 @@ function inferEmotionTags(text) {
   });
 
   if (tags.length === 0) {
-    if (/(괜찮아|그냥 그래|모르겠|별로|뭐가|어떻게)/.test(normalized)) {
+    if (/(괜찮아|그냥 그래|모르겠|별로|뭐가|어떻게|어렵|복잡)/.test(normalized)) {
       tags.push('confused', 'tired');
     } else {
       tags.push('neutral');
     }
   }
 
-  if (normalized.includes('좋아') && !tags.includes('happy')) {
+  if (/(좋아|좋아해|좋다|기분 좋아|기분이 좋아)/.test(normalized) && !tags.includes('happy')) {
     tags.push('happy');
   }
 
-  if (normalized.includes('괜찮아') || normalized.includes('그냥 그래')) {
+  if (/(괜찮아|그냥 그래|어떻게든|버티|견디)/.test(normalized)) {
     tags.push('healing');
   }
 
-  return tags.slice(0, 4);
+  return tags.slice(0, 5);
 }
 
 function scoreSong(song, emotionTags) {
@@ -111,14 +113,18 @@ function scoreSong(song, emotionTags) {
     if (tags.has(tag)) score += 4;
   });
 
-  if (tags.has('sad') && song.moodTags.includes('healing')) score += 1;
-  if (tags.has('lonely') && song.moodTags.includes('comfort')) score += 1;
-  if (tags.has('anxious') && song.moodTags.includes('healing')) score += 1;
-  if (tags.has('angry') && song.moodTags.includes('empowered')) score += 1;
-  if (tags.has('hopeful') && song.moodTags.includes('hopeful')) score += 1;
-  if (tags.has('confident') && song.moodTags.includes('confident')) score += 1;
-  if (tags.has('playful') && song.moodTags.includes('playful')) score += 1;
-  if (tags.has('romantic') && song.moodTags.includes('romantic')) score += 1;
+  if (tags.has('sad') && song.moodTags.includes('healing')) score += 2;
+  if (tags.has('lonely') && song.moodTags.includes('comfort')) score += 2;
+  if (tags.has('anxious') && song.moodTags.includes('healing')) score += 2;
+  if (tags.has('angry') && song.moodTags.includes('empowered')) score += 2;
+  if (tags.has('hopeful') && song.moodTags.includes('hopeful')) score += 2;
+  if (tags.has('confident') && song.moodTags.includes('confident')) score += 2;
+  if (tags.has('playful') && song.moodTags.includes('playful')) score += 2;
+  if (tags.has('romantic') && song.moodTags.includes('romantic')) score += 2;
+  if (tags.has('dreamy') && song.moodTags.includes('dreamy')) score += 2;
+  if (tags.has('intense') && song.moodTags.includes('intense')) score += 2;
+  if (tags.has('selfLove') && song.moodTags.includes('self-love')) score += 2;
+  if (tags.has('rebellious') && song.moodTags.includes('rebellious')) score += 2;
 
   return score;
 }
