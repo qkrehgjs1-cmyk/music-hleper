@@ -1,7 +1,7 @@
 // 로컬 테스트용 스크립트
 // 사용법: node test.js
 
-import handler from './api/recommend.js/recommend.js';
+import handler from './api/recommend.js';
 
 // 환경 변수 확인
 console.log('🔐 환경 변수 확인:');

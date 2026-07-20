@@ -2,7 +2,7 @@
   "name": "music-recommend-api",
   "version": "1.0.0",
   "description": "AI 기반 음악 추천 API",
-  "main": "api/recommend.js/recommend.js",
+  "main": "api/recommend.js",
   "type": "module",
   "dependencies": {
     "node-fetch": "^3.3.0"

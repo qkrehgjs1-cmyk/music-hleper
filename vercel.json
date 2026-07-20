@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/recommend.js/recommend.js",
+      "src": "api/recommend.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/recommend",
-      "dest": "api/recommend.js/recommend.js",
+      "dest": "api/recommend.js",
       "methods": ["POST"]
     }
   ],
