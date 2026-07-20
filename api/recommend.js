@@ -145,7 +145,6 @@ export default async function handler(req, res) {
 ✅ 결과: '곡명 - 아티스트' 형식으로 시작
 ✅ 해설: 심리학 이론명 + 감정 상태 + 왜 이 곡인지 명확히 (2~3문장)
 ✅ 예시: "당신의 '괜찮아'는 부착 회피형의 억압 기제군요. 이 곡은 자립감과 신뢰를 회복하게 해줄 거예요."` 
-          }, 
           },
           { role: "user", content: mood }
         ]
