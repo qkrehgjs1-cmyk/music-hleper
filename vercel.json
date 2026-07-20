@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "functions": {
-    "api/recommend.js": {
-      "runtime": "nodejs20.x"
+  "builds": [
+    {
+      "src": "api/recommend.js",
+      "use": "@vercel/node"
     }
-  },
+  ],
   "routes": [
     {
       "src": "/api/recommend",
