@@ -185,11 +185,11 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
   }
 }
 
-export function getMoodRecommendationDebugInfo(moodText) {
+function getMoodRecommendationDebugInfo(moodText) {
   return selectSongForMood(moodText);
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
@@ -309,3 +309,6 @@ export default async function handler(req, res) {
     });
   }
 }
+
+module.exports = handler;
+module.exports.getMoodRecommendationDebugInfo = getMoodRecommendationDebugInfo;
