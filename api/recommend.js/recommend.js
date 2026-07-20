@@ -1,11 +1,33 @@
 // '노래한곡의 여유' 백엔드 핵심 로직
 export default async function handler(req, res) {
+  // 캐싱 방지 (중요!)
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  
   // POST 요청이 아니면 거절 (보안)
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const { mood } = JSON.parse(req.body);
+  // 요청 바디 파싱 (Vercel에서는 객체로 올 수 있음)
+  let mood = '';
+  try {
+    if (typeof req.body === 'string') {
+      mood = JSON.parse(req.body).mood;
+    } else {
+      mood = req.body.mood;
+    }
+  } catch (e) {
+    return res.status(400).json({ error: "요청 형식이 올바르지 않습니다" });
+  }
+
+  // mood 검증
+  if (!mood || mood.trim().length === 0) {
+    return res.status(400).json({ error: "기분을 입력해주세요" });
+  }
+
+  console.log(`[요청] 사용자 기분: "${mood}"`);
 
   try {
     // 1. OpenAI에게 심층 감정 분석 및 노래 추천 요청 (Ver 2.0 프롬프트 적용)
@@ -17,6 +39,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "gpt-4",
+        temperature: 0.7, // 다양한 답변을 위해 추가
         messages: [
           { 
             role: "system", 
@@ -31,10 +54,12 @@ export default async function handler(req, res) {
     
     // 오류 체크
     if (!aiData.choices || !aiData.choices[0]) {
+      console.error("AI 응답 오류:", aiData);
       return res.status(500).json({ error: "AI 응답 오류" });
     }
 
     const resultText = aiData.choices[0].message.content;
+    console.log(`[AI 응답] ${resultText.split('\n')[0]}`);
     
     // 결과에서 곡 정보와 해설 분리
     const lines = resultText.split('\n');
