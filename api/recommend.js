@@ -73,6 +73,7 @@ const MOOD_KEYWORDS = {
 };
 
 const MAX_MOOD_LENGTH = 160;
+const FALLBACK_ALBUM_ART = 'https://via.placeholder.com/300x300.png?text=Music+Recommendation';
 
 function sanitizeMoodInput(value) {
   return String(value || '')
@@ -161,6 +162,10 @@ function buildLocalAnalysis(song, emotionTags, moodText) {
   return `${moodText}라는 입력은 ${moodSummary} 쪽으로 읽힙니다. ${song.title} - ${song.artist}는 ${topEmotion} 감정과 잘 맞는 곡으로, 위로와 공감을 더해줄 수 있는 분위기입니다.`;
 }
 
+function buildYoutubeSearchLink(song) {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${song.title} ${song.artist}`)}`;
+}
+
 function parseRequestBody(body) {
   if (typeof body === 'string') {
     const parsed = JSON.parse(body);
@@ -188,6 +193,13 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
 
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method Not Allowed' });
@@ -255,32 +267,37 @@ export default async function handler(req, res) {
       }
     }
 
-    if (!process.env.YOUTUBE_API_KEY) {
-      return res.status(500).json({ error: 'YouTube API 키가 설정되지 않았습니다.' });
+    let albumArt = FALLBACK_ALBUM_ART;
+    let youtubeLink = buildYoutubeSearchLink(song);
+
+    if (process.env.YOUTUBE_API_KEY) {
+      try {
+        const ytResponse = await fetchWithTimeout(
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(`${song.title} ${song.artist}`)}&type=video&key=${process.env.YOUTUBE_API_KEY}`
+        );
+
+        if (!ytResponse.ok) {
+          throw new Error(`YouTube request failed with status ${ytResponse.status}`);
+        }
+
+        const ytData = await ytResponse.json();
+
+        if (ytData.items && ytData.items.length > 0) {
+          const video = ytData.items[0];
+          albumArt = video.snippet.thumbnails.high.url;
+          youtubeLink = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+        }
+      } catch (ytError) {
+        console.warn('YouTube 조회 실패, 검색 링크로 대체:', ytError.message);
+      }
     }
-
-    const ytResponse = await fetchWithTimeout(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(`${song.title} ${song.artist}`)}&type=video&key=${process.env.YOUTUBE_API_KEY}`
-    );
-
-    if (!ytResponse.ok) {
-      throw new Error(`YouTube request failed with status ${ytResponse.status}`);
-    }
-
-    const ytData = await ytResponse.json();
-
-    if (!ytData.items || ytData.items.length === 0) {
-      return res.status(404).json({ error: '유튜브에서 곡을 찾을 수 없습니다.' });
-    }
-
-    const video = ytData.items[0];
 
     return res.status(200).json({
       title: song.title,
       artist: song.artist,
       analysis,
-      albumArt: video.snippet.thumbnails.high.url,
-      youtubeLink: `https://www.youtube.com/watch?v=${video.id.videoId}`,
+      albumArt,
+      youtubeLink,
       moodTags: emotionTags,
       genre: song.genre.toUpperCase()
     });
