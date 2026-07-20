@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/recommend.js/recommend.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/recommend",
+      "dest": "api/recommend.js/recommend.js",
+      "methods": ["POST"]
+    }
+  ],
+  "env": {
+    "OPENAI_API_KEY": "@openai_api_key",
+    "YOUTUBE_API_KEY": "@youtube_api_key"
+  }
+}

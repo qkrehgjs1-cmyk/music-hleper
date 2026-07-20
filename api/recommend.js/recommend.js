@@ -28,29 +28,48 @@ export default async function handler(req, res) {
     });
 
     const aiData = await aiResponse.json();
-    const resultText = aiData.choices.message.content;
+    
+    // 오류 체크
+    if (!aiData.choices || !aiData.choices[0]) {
+      return res.status(500).json({ error: "AI 응답 오류" });
+    }
+
+    const resultText = aiData.choices[0].message.content;
     
     // 결과에서 곡 정보와 해설 분리
-    const firstLine = resultText.split('\n'); // "곡명 - 아티스트"
-    const analysis = resultText.replace(firstLine, "").trim();
+    const lines = resultText.split('\n');
+    const firstLine = lines[0].trim(); // "곡명 - 아티스트"
+    const analysis = lines.slice(1).join('\n').trim() || "당신만을 위한 특별한 선율입니다.";
 
-    // 2. 유튜브 API로 공식 앨범 아트 및 링크 가져오기 (저작권 회피 전략)
+    // 곡명과 아티스트 파싱
+    const [title, artist] = firstLine.split(' - ').map(s => s.trim());
+
+    // 2. 유튜브 API로 공식 앨범 아트 및 링크 가져오기
     const ytResponse = await fetch(
       `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(firstLine)}&type=video&key=${process.env.YOUTUBE_API_KEY}`
     );
     const ytData = await ytResponse.json();
-    const video = ytData.items;
+    
+    if (!ytData.items || ytData.items.length === 0) {
+      return res.status(404).json({ error: "유튜브에서 곡을 찾을 수 없습니다." });
+    }
+
+    const video = ytData.items[0];
 
     // 3. 최종 데이터를 Framer 웹사이트로 전송
     return res.status(200).json({
-      title: firstLine.split(' - ') || "추천곡",
-      artist: firstLine.split(' - ')[4] || "아티스트",
-      analysis: analysis || "당신만을 위한 특별한 선율입니다.",
+      title: title || "추천곡",
+      artist: artist || "아티스트",
+      analysis: analysis,
       albumArt: video.snippet.thumbnails.high.url, // 유튜브 공식 이미지
       youtubeLink: `https://www.youtube.com/watch?v=${video.id.videoId}`
     });
 
   } catch (error) {
-    return res.status(500).json({ error: "음악을 찾는 도중 오류가 발생했습니다." });
+    console.error("추천 오류:", error);
+    return res.status(500).json({ 
+      error: "음악을 찾는 도중 오류가 발생했습니다.",
+      details: error.message
+    });
   }
 }

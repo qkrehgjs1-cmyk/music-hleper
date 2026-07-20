@@ -1,0 +1,17 @@
+{
+  "name": "music-recommend-api",
+  "version": "1.0.0",
+  "description": "AI 기반 음악 추천 API",
+  "main": "api/recommend.js/recommend.js",
+  "type": "module",
+  "dependencies": {
+    "node-fetch": "^3.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["music", "ai", "recommendation"],
+  "author": "",
+  "license": "MIT"
+}
