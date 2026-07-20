@@ -72,6 +72,15 @@ const MOOD_KEYWORDS = {
   intense: ['심장', '강렬', '진심', '격해', '불타', '뜨거운', '감정이 폭발', '무겁', '묵직']
 };
 
+const MAX_MOOD_LENGTH = 160;
+
+function sanitizeMoodInput(value) {
+  return String(value || '')
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .trim()
+    .slice(0, MAX_MOOD_LENGTH);
+}
+
 function normalizeMoodText(text) {
   return String(text || '').toLowerCase().replace(/[^가-힣a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -154,9 +163,21 @@ function buildLocalAnalysis(song, emotionTags, moodText) {
 
 function parseRequestBody(body) {
   if (typeof body === 'string') {
-    return JSON.parse(body).mood || '';
+    const parsed = JSON.parse(body);
+    return parsed?.mood || '';
   }
   return body?.mood || '';
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export function getMoodRecommendationDebugInfo(moodText) {
@@ -174,13 +195,17 @@ export default async function handler(req, res) {
 
   let mood = '';
   try {
-    mood = parseRequestBody(req.body);
+    mood = sanitizeMoodInput(parseRequestBody(req.body));
   } catch (e) {
     return res.status(400).json({ error: '요청 형식이 올바르지 않습니다' });
   }
 
   if (!mood || mood.trim().length === 0) {
     return res.status(400).json({ error: '기분을 입력해주세요' });
+  }
+
+  if (mood.length >= MAX_MOOD_LENGTH) {
+    return res.status(413).json({ error: '입력은 160자 이내로 보내주세요.' });
   }
 
   console.log(`[요청] 사용자 기분: "${mood}"`);
@@ -192,14 +217,14 @@ export default async function handler(req, res) {
 
     if (process.env.OPENAI_API_KEY) {
       try {
-        const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        const aiResponse = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'gpt-4',
+            model: 'gpt-4o-mini',
             temperature: 0.8,
             top_p: 0.95,
             frequency_penalty: 0.2,
@@ -215,7 +240,11 @@ export default async function handler(req, res) {
               }
             ]
           })
-        });
+        }, 10000);
+
+        if (!aiResponse.ok) {
+          throw new Error(`OpenAI request failed with status ${aiResponse.status}`);
+        }
 
         const aiData = await aiResponse.json();
         if (aiData?.choices?.[0]?.message?.content) {
@@ -226,9 +255,18 @@ export default async function handler(req, res) {
       }
     }
 
-    const ytResponse = await fetch(
+    if (!process.env.YOUTUBE_API_KEY) {
+      return res.status(500).json({ error: 'YouTube API 키가 설정되지 않았습니다.' });
+    }
+
+    const ytResponse = await fetchWithTimeout(
       `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(`${song.title} ${song.artist}`)}&type=video&key=${process.env.YOUTUBE_API_KEY}`
     );
+
+    if (!ytResponse.ok) {
+      throw new Error(`YouTube request failed with status ${ytResponse.status}`);
+    }
+
     const ytData = await ytResponse.json();
 
     if (!ytData.items || ytData.items.length === 0) {
@@ -250,7 +288,7 @@ export default async function handler(req, res) {
     console.error('추천 오류:', error);
     return res.status(500).json({
       error: '음악을 찾는 도중 오류가 발생했습니다.',
-      details: error.message
+      ...(process.env.NODE_ENV !== 'production' ? { details: error.message } : {})
     });
   }
 }
